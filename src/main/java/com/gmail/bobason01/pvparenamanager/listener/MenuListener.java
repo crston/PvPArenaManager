@@ -7,8 +7,10 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryAction;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.inventory.ItemStack;
 
 public class MenuListener implements Listener {
 
@@ -22,34 +24,37 @@ public class MenuListener implements Listener {
         this.langMenuTitle = plugin.getMenuManager().getLangMenuTitle();
     }
 
-    // 아이템 클릭 및 이동 방지 (가장 높은 우선순위로 처리)
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onInventoryClick(InventoryClickEvent event) {
         String title = event.getView().getTitle();
 
-        // 우리 플러그인의 GUI가 아니면 즉시 리턴 (성능 최적화)
         if (!title.equals(mainMenuTitle) && !title.equals(langMenuTitle)) return;
 
-        // GUI 내의 모든 클릭 이벤트 취소 (아이템이 빠지는 것을 원천 봉쇄)
+        // 아이템이 인벤토리 밖으로 빠지거나 마우스에 붙는 것을 방지하는 강력한 조치
         event.setCancelled(true);
+
+        // 아이템을 수집하거나 옮기는 액션 자체를 차단
+        if (event.getAction() == InventoryAction.COLLECT_TO_CURSOR ||
+                event.getAction() == InventoryAction.MOVE_TO_OTHER_INVENTORY) {
+            event.setCancelled(true);
+        }
 
         if (!(event.getWhoClicked() instanceof Player)) return;
         Player player = (Player) event.getWhoClicked();
 
-        // 빈 공간 클릭 시 무시
-        if (event.getCurrentItem() == null || event.getCurrentItem().getType() == Material.AIR) return;
+        ItemStack clickedItem = event.getCurrentItem();
+        if (clickedItem == null || clickedItem.getType() == Material.AIR) return;
 
-        // 메인 매칭 메뉴 로직
-        if (title.equals(mainMenuTitle)) {
-            handleMainMenu(event.getCurrentItem().getType(), player);
-        }
-        // 언어 선택 메뉴 로직
-        else if (title.equals(langMenuTitle)) {
-            handleLangMenu(event.getRawSlot(), player);
+        // 메뉴 영역(상단) 클릭 시에만 로직 작동
+        if (event.getRawSlot() < event.getView().getTopInventory().getSize()) {
+            if (title.equals(mainMenuTitle)) {
+                handleMainMenu(clickedItem.getType(), player);
+            } else if (title.equals(langMenuTitle)) {
+                handleLangMenu(event.getRawSlot(), player);
+            }
         }
     }
 
-    // 아이템 드래그를 통한 유출 방지
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onInventoryDrag(InventoryDragEvent event) {
         String title = event.getView().getTitle();
@@ -65,8 +70,13 @@ public class MenuListener implements Listener {
             case DIAMOND_SWORD: plugin.getMatchManager().addToQueue(player, ArenaType.THREE_VS_THREE); break;
             case NETHERITE_SWORD: plugin.getMatchManager().addToQueue(player, ArenaType.FOUR_VS_FOUR); break;
             case TNT: plugin.getMatchManager().addToQueue(player, ArenaType.DEATHMATCH); break;
-            case BOOK: plugin.getMenuManager().openLanguageMenu(player); return; // 닫지 않고 언어 메뉴로 이동
-            case BARRIER: removeFromAllQueues(player); break;
+            case BOOK:
+                plugin.getMenuManager().openLanguageMenu(player);
+                return;
+            case BARRIER:
+                // [수정] 직접 삭제하지 말고 MatchManager의 메서드를 호출해야 보스바가 지워집니다.
+                plugin.getMatchManager().removeFromQueue(player);
+                break;
             default: return;
         }
         player.closeInventory();
@@ -81,12 +91,5 @@ public class MenuListener implements Listener {
             player.sendMessage(plugin.getLangManager().getMessage(player, "lang_change_success"));
         }
         player.closeInventory();
-    }
-
-    private void removeFromAllQueues(Player player) {
-        for (ArenaType type : ArenaType.values()) {
-            plugin.getMatchManager().getMatchQueues().get(type).removeIf(entry -> entry.getUuid().equals(player.getUniqueId()));
-        }
-        player.sendMessage(plugin.getLangManager().getMessage(player, "queue_leave"));
     }
 }

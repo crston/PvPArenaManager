@@ -13,10 +13,6 @@ import org.bukkit.event.entity.PlayerDeathEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 
-import java.util.HashSet;
-import java.util.Set;
-import java.util.UUID;
-
 public class MatchListener implements Listener {
 
     private final PvPArenaManager plugin;
@@ -40,13 +36,14 @@ public class MatchListener implements Listener {
             }
         }
 
-        // 게임 중 지역 이탈 체크 (성능을 위해 블록 좌표가 바뀔 때만 실행)
+        // 게임 중 지역 이탈 체크 (성능 최적화: 블록 좌표가 바뀔 때만 실행)
         if (arena.getState() == ArenaState.PLAYING) {
             if (event.getFrom().getBlockX() != event.getTo().getBlockX() ||
                     event.getFrom().getBlockZ() != event.getTo().getBlockZ()) {
 
+                // 월드가드 지역을 벗어났는지 확인
                 if (!plugin.getWgUtil().isPlayerInRegion(player, arena.getRegionName())) {
-                    handleDefeat(player, arena);
+                    plugin.getMatchManager().handleQuit(player);
                 }
             }
         }
@@ -59,77 +56,60 @@ public class MatchListener implements Listener {
 
         if (arena == null) return;
 
-        // 아이템 소실 방지 및 경험치 드랍 차단
+        // 아이템 소실 방지 및 메시지 제거
         event.getDrops().clear();
         event.setDroppedExp(0);
         event.setDeathMessage(null);
 
-        // 1틱 뒤에 리스폰 및 유령 모드 처리
+        // 1틱 뒤에 리스폰 및 관전 모드 처리
         Bukkit.getScheduler().runTaskLater(plugin, () -> {
-            victim.spigot().respawn();
-            victim.setGameMode(GameMode.SPECTATOR);
-            arena.getSpectators().add(victim.getUniqueId());
-            checkMatchResult(arena);
+            if (victim.isOnline()) {
+                victim.spigot().respawn();
+                victim.setGameMode(GameMode.SPECTATOR);
+                arena.getSpectators().add(victim.getUniqueId());
+
+                // 남은 인원 체크하여 매치 종료 여부 결정
+                checkMatchResult(arena);
+            }
         }, 1L);
     }
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
-        Arena arena = plugin.getMatchManager().getPlayerArena(player.getUniqueId());
 
-        if (arena != null) {
-            handleDefeat(player, arena);
-        }
+        // 매칭 대기열에서 제거
+        plugin.getMatchManager().removeFromQueue(player);
+
+        // 진행 중인 게임이 있다면 패배 처리 (탈주 방지)
+        plugin.getMatchManager().handleQuit(player);
     }
 
-    // 탈주나 지역 이탈 시 패배 처리 로직
-    private void handleDefeat(Player loser, Arena arena) {
-        Set<UUID> winners = new HashSet<>();
-        Set<UUID> losers = new HashSet<>();
-
-        if (arena.getRedTeam().contains(loser.getUniqueId())) {
-            winners.addAll(arena.getBlueTeam());
-            losers.addAll(arena.getRedTeam());
-        } else if (arena.getBlueTeam().contains(loser.getUniqueId())) { // Arena 클래스의 Getter 명칭 확인 필요
-            winners.addAll(arena.getRedTeam());
-            losers.addAll(arena.getBlueTeam());
-        } else {
-            // 데스매치 등의 경우
-            losers.add(loser.getUniqueId());
-            for (UUID uuid : arena.getRedTeam()) winners.add(uuid);
-            for (UUID uuid : arena.getBlueTeam()) winners.add(uuid);
-            winners.remove(loser.getUniqueId());
-        }
-
-        plugin.getMatchManager().endMatch(arena, winners, losers);
-    }
-
-    // 생존 인원을 확인하여 승패 결정
+    // 생존 인원을 확인하여 승패를 판정하는 내부 로직
     private void checkMatchResult(Arena arena) {
         if (arena.getState() != ArenaState.PLAYING) return;
 
         int redAlive = 0;
         int blueAlive = 0;
 
-        for (UUID uuid : arena.getRedTeam()) {
+        for (java.util.UUID uuid : arena.getRedTeam()) {
             Player p = Bukkit.getPlayer(uuid);
             if (p != null && p.isOnline() && p.getGameMode() != GameMode.SPECTATOR) {
                 redAlive++;
             }
         }
 
-        for (UUID uuid : arena.getBlueTeam()) {
+        for (java.util.UUID uuid : arena.getBlueTeam()) {
             Player p = Bukkit.getPlayer(uuid);
             if (p != null && p.isOnline() && p.getGameMode() != GameMode.SPECTATOR) {
                 blueAlive++;
             }
         }
 
-        // 어느 한 팀이 전멸했을 경우
+        // 한 팀이 전멸했을 경우 결과 처리
         if (redAlive == 0 || blueAlive == 0) {
-            Set<UUID> winners = (redAlive > 0) ? arena.getRedTeam() : arena.getBlueTeam();
-            Set<UUID> losers = (redAlive > 0) ? arena.getBlueTeam() : arena.getRedTeam();
+            java.util.Set<java.util.UUID> winners = (redAlive > 0) ? arena.getRedTeam() : arena.getBlueTeam();
+            java.util.Set<java.util.UUID> losers = (redAlive > 0) ? arena.getBlueTeam() : arena.getRedTeam();
             plugin.getMatchManager().endMatch(arena, winners, losers);
         }
     }

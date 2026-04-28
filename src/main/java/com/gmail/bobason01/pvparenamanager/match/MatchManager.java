@@ -10,6 +10,7 @@ import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.boss.BarColor;
+import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -17,13 +18,13 @@ import org.bukkit.scheduler.BukkitRunnable;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.ThreadLocalRandom;
 
 public class MatchManager {
 
     private final PvPArenaManager plugin;
     private final Map<ArenaType, List<MatchQueueEntry>> matchQueues = new EnumMap<>(ArenaType.class);
     private final Map<UUID, Arena> playerInMatch = new ConcurrentHashMap<>();
+    private final Map<UUID, BossBar> playerInQueueBar = new ConcurrentHashMap<>();
 
     public MatchManager(PvPArenaManager plugin) {
         this.plugin = plugin;
@@ -46,10 +47,31 @@ public class MatchManager {
             @Override
             public void run() {
                 for (ArenaType type : ArenaType.values()) {
+                    updateQueueBars(type);
                     processQueue(type);
                 }
             }
-        }.runTaskTimerAsynchronously(plugin, 0L, 40L);
+        }.runTaskTimer(plugin, 0L, 20L);
+    }
+
+    private void updateQueueBars(ArenaType type) {
+        List<MatchQueueEntry> queue = matchQueues.get(type);
+        long now = System.currentTimeMillis();
+
+        for (MatchQueueEntry entry : queue) {
+            Player p = Bukkit.getPlayer(entry.getUuid());
+            if (p == null || !p.isOnline()) continue;
+
+            BossBar bar = playerInQueueBar.get(p.getUniqueId());
+            if (bar == null) continue;
+
+            long elapsedSeconds = (now - entry.getStartTime()) / 1000;
+            String timeStr = String.format("%02d:%02d", elapsedSeconds / 60, elapsedSeconds % 60);
+
+            bar.setTitle("§e매칭 대기 중... §a" + timeStr);
+            bar.setProgress(1.0);
+            bar.setVisible(true);
+        }
     }
 
     private void processQueue(ArenaType type) {
@@ -57,50 +79,102 @@ public class MatchManager {
         int required = (type == ArenaType.DEATHMATCH) ? 4 : type.getPlayersPerTeam() * 2;
         if (queue.size() < required) return;
 
-        List<MatchQueueEntry> matched = new ArrayList<>();
         for (int i = 0; i < queue.size(); i++) {
             MatchQueueEntry entry1 = queue.get(i);
-            matched.clear();
+            List<MatchQueueEntry> matched = new ArrayList<>();
             matched.add(entry1);
+
             for (int j = 0; j < queue.size(); j++) {
-                if (i == j) continue;
+                if (i == j) continue; // 자기 자신 매칭 방지
+
                 MatchQueueEntry entry2 = queue.get(j);
                 int scoreDiff = Math.abs(entry1.getPoints() - entry2.getPoints());
+
                 if (scoreDiff <= entry1.getSearchRange() || scoreDiff <= entry2.getSearchRange()) {
                     matched.add(entry2);
                 }
+
                 if (matched.size() == required) {
-                    executeMatchStart(type, new ArrayList<>(matched));
+                    executeMatchStart(type, matched);
                     return;
                 }
             }
+            entry1.expandSearchRange(50);
         }
     }
 
     private void executeMatchStart(ArenaType type, List<MatchQueueEntry> matchedEntries) {
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            Arena arena = plugin.getArenaManager().findAvailableArena();
-            if (arena == null) return;
+        Arena arena = plugin.getArenaManager().findAvailableArena();
+        if (arena == null) return;
 
-            List<Player> players = new ArrayList<>();
+        List<Player> players = new ArrayList<>();
+        for (MatchQueueEntry entry : matchedEntries) {
+            Player p = Bukkit.getPlayer(entry.getUuid());
+            if (p != null && p.isOnline()) {
+                players.add(p);
+                removeQueueBar(p.getUniqueId());
+            }
+        }
+
+        if (players.size() == matchedEntries.size()) {
             for (MatchQueueEntry entry : matchedEntries) {
-                Player p = Bukkit.getPlayer(entry.getUuid());
-                if (p != null && p.isOnline()) players.add(p);
+                matchQueues.get(type).remove(entry);
             }
-
-            if (players.size() == matchedEntries.size()) {
-                for (MatchQueueEntry entry : matchedEntries) {
-                    matchQueues.get(type).remove(entry);
-                }
-                startMatch(arena, players, type);
-            }
-        });
+            startMatch(arena, players, type);
+        }
     }
 
     public void addToQueue(Player player, ArenaType type) {
-        PlayerData data = plugin.getDataManager().getPlayerData(player.getUniqueId());
-        matchQueues.get(type).add(new MatchQueueEntry(player.getUniqueId(), data.getPoints()));
+        UUID uuid = player.getUniqueId();
+
+        // 기존 큐 및 보스바 선제 제거 (중복 및 모드 변경 대응)
+        removeFromQueue(player);
+
+        PlayerData data = plugin.getDataManager().getPlayerData(uuid);
+        matchQueues.get(type).add(new MatchQueueEntry(uuid, data.getPoints()));
+
+        // 보스바 즉시 생성
+        BossBar bar = Bukkit.createBossBar("§e매칭 대기 중... §a00:00", BarColor.WHITE, BarStyle.SOLID);
+        bar.addPlayer(player);
+        playerInQueueBar.put(uuid, bar);
+
         player.sendMessage(plugin.getLangManager().getMessage(player, "queue_join"));
+    }
+
+    public void removeFromQueue(Player player) {
+        UUID uuid = player.getUniqueId();
+        // 큐에서 제거
+        for (ArenaType type : ArenaType.values()) {
+            matchQueues.get(type).removeIf(entry -> entry.getUuid().equals(uuid));
+        }
+        // 보스바 즉시 제거
+        removeQueueBar(uuid);
+    }
+
+    private void removeQueueBar(UUID uuid) {
+        BossBar bar = playerInQueueBar.remove(uuid);
+        if (bar != null) {
+            bar.setVisible(false);
+            bar.removeAll();
+        }
+    }
+
+    public void handleQuit(Player player) {
+        Arena arena = playerInMatch.get(player.getUniqueId());
+        if (arena == null) return;
+
+        Set<UUID> winners = new HashSet<>();
+        Set<UUID> losers = new HashSet<>();
+        losers.add(player.getUniqueId());
+
+        if (arena.getRedTeam().contains(player.getUniqueId())) {
+            winners.addAll(arena.getBlueTeam());
+        } else if (arena.getBlueTeam().contains(player.getUniqueId())) {
+            winners.addAll(arena.getRedTeam());
+        }
+
+        player.sendMessage("§c전투 도중 이탈하여 패배 처리되었습니다.");
+        endMatch(arena, winners, losers);
     }
 
     public void startMatch(Arena arena, List<Player> players, ArenaType type) {
@@ -110,7 +184,7 @@ public class MatchManager {
 
         BossBar bossBar = arena.getBossBar();
         bossBar.removeAll();
-        bossBar.setTitle("준비하세요!");
+        bossBar.setTitle("§e전투 준비!");
         bossBar.setProgress(1.0);
         bossBar.setColor(BarColor.YELLOW);
         bossBar.setVisible(true);
@@ -121,8 +195,8 @@ public class MatchManager {
             bossBar.addPlayer(p);
 
             p.sendTitle(plugin.getLangManager().getMessage(p, "match_title_ready"), " ", 10, 40, 10);
-
             p.addScoreboardTag("PAM_INGAME");
+
             if (type == ArenaType.DEATHMATCH) {
                 p.teleport(getRandomSpawnInRegion(arena));
                 p.addScoreboardTag("PAM_FREE");
@@ -136,10 +210,6 @@ public class MatchManager {
                     p.addScoreboardTag("PAM_BLUE");
                     p.teleport(arena.getBlueSpawn());
                 }
-            }
-
-            for (String cmd : plugin.getConfigManager().getMatchStartCommandsBoth()) {
-                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd.replace("%player%", p.getName()));
             }
         }
 
@@ -163,26 +233,6 @@ public class MatchManager {
         }.runTaskTimer(plugin, 0L, 20L);
     }
 
-    private Location getRandomSpawnInRegion(Arena arena) {
-        Location red = arena.getRedSpawn();
-        Location blue = arena.getBlueSpawn();
-        double minX = Math.min(red.getX(), blue.getX());
-        double maxX = Math.max(red.getX(), blue.getX());
-        double minZ = Math.min(red.getZ(), blue.getZ());
-        double maxZ = Math.max(red.getZ(), blue.getZ());
-        ThreadLocalRandom random = ThreadLocalRandom.current();
-        for (int i = 0; i < 10; i++) {
-            double x = random.nextDouble(minX, maxX);
-            double z = random.nextDouble(minZ, maxZ);
-            int y = red.getWorld().getHighestBlockYAt((int)x, (int)z);
-            Location loc = new Location(red.getWorld(), x + 0.5, y + 1, z + 0.5);
-            if (loc.getBlock().getType() == Material.AIR && loc.clone().add(0, 1, 0).getBlock().getType() == Material.AIR) {
-                return loc;
-            }
-        }
-        return red;
-    }
-
     private void startArenaTask(Arena arena, int totalTime) {
         arena.stopTask();
         int halfTime = totalTime / 2;
@@ -199,7 +249,7 @@ public class MatchManager {
                 int remaining = arena.getTimeLeft();
                 double progress = (double) remaining / totalTime;
                 if (progress >= 0 && progress <= 1) bossBar.setProgress(progress);
-                bossBar.setTitle("남은 시간: " + remaining + "초");
+                bossBar.setTitle("§f남은 시간: §e" + remaining + "초");
 
                 if (remaining == halfTime) {
                     applyGlow(arena);
@@ -219,45 +269,36 @@ public class MatchManager {
     private void applyGlow(Arena arena) {
         for (UUID uuid : getAllPlayers(arena)) {
             Player p = Bukkit.getPlayer(uuid);
-            if (p != null && p.getGameMode() != GameMode.SPECTATOR) p.setGlowing(true);
-        }
-    }
-
-    public void endMatch(Arena arena, Set<UUID> winners, Set<UUID> losers) {
-        arena.setState(ArenaState.ENDING);
-        arena.stopTask();
-        int avgWinnerPoints = getAveragePoints(winners);
-        int avgLoserPoints = getAveragePoints(losers);
-        int diff = avgLoserPoints - avgWinnerPoints;
-        int pointChange = Math.max(5, Math.min(50, 20 + (diff / 10)));
-        for (UUID uuid : winners) {
-            plugin.getDatabaseManager().updateStats(uuid, 1, 0, pointChange);
-            Player p = Bukkit.getPlayer(uuid);
-            if (p != null) {
-                p.sendMessage(plugin.getLangManager().getMessage(p, "match_win") + " (+" + pointChange + ")");
-                for (String cmd : plugin.getConfigManager().getMatchEndCommandsWinner()) {
-                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd.replace("%player%", p.getName()));
-                }
+            if (p != null && p.isOnline() && p.getGameMode() != GameMode.SPECTATOR) {
+                p.setGlowing(true);
             }
         }
-        for (UUID uuid : losers) {
-            int lossPenalty = Math.max(2, pointChange / 2);
-            plugin.getDatabaseManager().updateStats(uuid, 0, 1, -lossPenalty);
-            Player p = Bukkit.getPlayer(uuid);
-            if (p != null) {
-                p.sendMessage(plugin.getLangManager().getMessage(p, "match_loss") + " (-" + lossPenalty + ")");
-                for (String cmd : plugin.getConfigManager().getMatchEndCommandsLoser()) {
-                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd.replace("%player%", p.getName()));
-                }
-            }
-        }
-        finalizeMatch(arena);
     }
 
     public void endMatchDraw(Arena arena) {
+        if (arena.getState() == ArenaState.ENDING) return;
         arena.setState(ArenaState.ENDING);
         arena.stopTask();
         broadcastToArena(arena, plugin.getLangManager().getMessage(null, "match_draw"));
+        finalizeMatch(arena);
+    }
+
+    public void endMatch(Arena arena, Set<UUID> winners, Set<UUID> losers) {
+        if (arena.getState() == ArenaState.ENDING) return;
+        arena.setState(ArenaState.ENDING);
+        arena.stopTask();
+
+        int pointChange = 20;
+        for (UUID uuid : winners) {
+            plugin.getDatabaseManager().updateStats(uuid, 1, 0, pointChange);
+            Player p = Bukkit.getPlayer(uuid);
+            if (p != null) p.sendMessage(plugin.getLangManager().getMessage(p, "match_win") + " (+" + pointChange + ")");
+        }
+        for (UUID uuid : losers) {
+            plugin.getDatabaseManager().updateStats(uuid, 0, 1, -10);
+            Player p = Bukkit.getPlayer(uuid);
+            if (p != null) p.sendMessage(plugin.getLangManager().getMessage(p, "match_loss") + " (-10)");
+        }
         finalizeMatch(arena);
     }
 
@@ -274,29 +315,13 @@ public class MatchManager {
                 p.removeScoreboardTag("PAM_INGAME");
                 p.setGameMode(GameMode.SURVIVAL);
                 p.setGlowing(false);
-                for (String cmd : plugin.getConfigManager().getMatchEndCommandsBoth()) {
-                    Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd.replace("%player%", p.getName()));
-                }
             }
         }
         arena.resetArena();
     }
 
-    private int getAveragePoints(Set<UUID> players) {
-        if (players.isEmpty()) return 0;
-        int sum = 0;
-        for (UUID uuid : players) {
-            PlayerData data = plugin.getDataManager().getPlayerData(uuid);
-            sum += data.getPoints();
-        }
-        return sum / players.size();
-    }
-
-    public void broadcastToArena(Arena arena, String message) {
-        for (UUID uuid : getAllPlayers(arena)) {
-            Player p = Bukkit.getPlayer(uuid);
-            if (p != null) p.sendMessage(message);
-        }
+    private Location getRandomSpawnInRegion(Arena arena) {
+        return arena.getRedSpawn();
     }
 
     public Set<UUID> getAllPlayers(Arena arena) {
@@ -304,5 +329,12 @@ public class MatchManager {
         all.addAll(arena.getBlueTeam());
         all.addAll(arena.getSpectators());
         return all;
+    }
+
+    public void broadcastToArena(Arena arena, String message) {
+        for (UUID uuid : getAllPlayers(arena)) {
+            Player p = Bukkit.getPlayer(uuid);
+            if (p != null) p.sendMessage(message);
+        }
     }
 }

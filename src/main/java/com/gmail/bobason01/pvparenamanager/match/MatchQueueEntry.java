@@ -5,15 +5,17 @@ import java.util.UUID;
 public class MatchQueueEntry {
     private final UUID uuid;
     private final int points;
-    private final long joinTime;
+    private final long startTime;
+    private int searchRange;
 
     public MatchQueueEntry(UUID uuid, int points) {
         this.uuid = uuid;
         this.points = points;
-        this.joinTime = System.currentTimeMillis();
+        this.startTime = System.currentTimeMillis();
+        this.searchRange = 100;
     }
 
-    public UUID getUuid() {
+    public UUID getUuid() { // 이 메서드가 누락되었거나 이름이 달랐을 것입니다.
         return uuid;
     }
 
@@ -21,8 +23,15 @@ public class MatchQueueEntry {
         return points;
     }
 
+    public long getStartTime() {
+        return startTime;
+    }
+
     public int getSearchRange() {
-        long secondsWaiting = (System.currentTimeMillis() - joinTime) / 1000;
-        return (int) (100 + (secondsWaiting * 10)); // 대기 시간에 따라 범위 확장
+        return searchRange;
+    }
+
+    public void expandSearchRange(int amount) {
+        this.searchRange += amount;
     }
 }

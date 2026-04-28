@@ -1,0 +1,27 @@
+# System Messages
+plugin_enabled: "&aPvPArenaManager has been enabled."
+plugin_disabled: "&cPvPArenaManager has been disabled."
+reload_success: "&aConfig and Language files have been reloaded."
+no_permission: "&cYou do not have permission to use this command."
+
+# Matching
+queue_join: "&aJoined the matching queue. Searching for an opponent..."
+queue_leave: "&cYou have left the matching queue."
+match_countdown: "&eMatch starts in %time% seconds."
+match_start: "&c&lFight! Defeat your opponent."
+match_time_left: "&6%time% seconds left until draw."
+match_draw: "&eMatch ended in a draw due to time limit."
+
+# Visual Effects (Title & BossBar)
+match_title_ready: "&e&lGet Ready!"
+match_title_start: "&c&lFIGHT!"
+match_glow_start: "&6&l[!] &eHalf of the time has passed! All players are now glowing."
+
+# Match Results
+match_win: "&b&l[VICTORY] &fYou won the match and earned points!"
+match_loss: "&c&l[DEFEAT] &fYou lost the match. Better luck next time."
+
+# GUI & Others
+menu_title: "PVP Match Menu"
+lang_change_success: "&aLanguage has been set to English."
+tier_up: "&b&l[TIER UP] &fCurrent Tier: %tier%"

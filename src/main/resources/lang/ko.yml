@@ -1,0 +1,27 @@
+# 시스템 메시지
+plugin_enabled: "&aPvPArenaManager 플러그인이 활성화되었습니다."
+plugin_disabled: "&cPvPArenaManager 플러그인이 비활성화되었습니다."
+reload_success: "&a설정 및 언어 파일이 성공적으로 리로드되었습니다."
+no_permission: "&c이 명령어를 사용할 권한이 없습니다."
+
+# 매칭 관련
+queue_join: "&a매칭 대기열에 참가하였습니다. 적절한 상대를 찾는 중..."
+queue_leave: "&c매칭 대기열에서 나갔습니다."
+match_countdown: "&e전투 시작까지 %time%초 남았습니다."
+match_start: "&c&l전투 시작! 상대방을 제압하세요."
+match_time_left: "&6제한 시간 종료까지 %time%초 남았습니다."
+match_draw: "&e시간 초과로 인해 무승부 처리되었습니다."
+
+# 시각 효과 (타이틀 및 보스바)
+match_title_ready: "&e&l전투 준비!"
+match_title_start: "&c&l전투 시작!"
+match_glow_start: "&6&l[!] &e시간이 절반 경과했습니다! 모든 플레이어의 위치가 노출됩니다."
+
+# 전투 결과
+match_win: "&b&l[승리] &f전투에서 승리하여 점수를 획득했습니다!"
+match_loss: "&c&l[패배] &f전투에서 패배했습니다. 다음 기회를 노리세요."
+
+# GUI 및 기타
+menu_title: "PVP 매칭 시스템"
+lang_change_success: "&a언어가 한국어로 설정되었습니다."
+tier_up: "&b&l[티어 상승] &f현재 티어: %tier%"

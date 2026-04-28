@@ -1,0 +1,9 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="PvPArenaManager:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/PvPArenaManager_jar</output-path>
+    <root id="archive" name="PvPArenaManager.jar">
+      <element id="module-output" name="PvPArenaManager" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/com/zaxxer/HikariCP/5.1.0/HikariCP-5.1.0.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>

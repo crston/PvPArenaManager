@@ -1,0 +1,37 @@
+# 시스템 기본 설정
+system:
+  default_language: "ko"
+  # 전투 시작 전 카운트다운 초
+  countdown_seconds: 5
+
+# 저장 방식 설정 (YAML, SQLITE, MYSQL 중 선택)
+storage:
+  type: "YAML"
+  mysql:
+    host: "localhost"
+    port: 3306
+    database: "pvp_db"
+    username: "root"
+    password: "password"
+
+# 모드별 제한 시간 설정 (초 단위)
+times:
+  ONE_VS_ONE: 300
+  TWO_VS_TWO: 600
+  THREE_VS_THREE: 900
+  FOUR_VS_FOUR: 1200
+  DEATHMATCH: 600
+
+# 이벤트별 실행 명령어 (%player% 변수 사용 가능)
+commands:
+  start:
+    both:
+      - "msg %player% &e전투가 곧 시작됩니다! 행운을 빕니다."
+  end:
+    winner:
+      - "give %player% diamond 1"
+      - "msg %player% &b&l승리 보상이 지급되었습니다."
+    loser:
+      - "msg %player% &c패배하였습니다. 더 수련해오세요."
+    both:
+      - "msg %player% &7전투가 종료되어 이전 장소로 이동합니다."

@@ -1,0 +1,12 @@
+name: PvPArenaManager
+version: 1.0.0
+main: com.gmail.bobason01.pvparenamanager.PvPArenaManager
+api-version: '1.16'
+author: crston
+depend: [WorldGuard, WorldEdit]
+softdepend: [PlaceholderAPI]
+commands:
+  pvparena:
+    description: PvPArenaManager 메인 명령어
+    aliases: [pam, pvparenamanager]
+    permission: pvparena.use

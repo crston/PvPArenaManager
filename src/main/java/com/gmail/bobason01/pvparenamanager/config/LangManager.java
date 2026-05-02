@@ -26,8 +26,9 @@ public class LangManager {
         File langFolder = new File(plugin.getDataFolder(), "lang");
         if (!langFolder.exists()) {
             langFolder.mkdirs();
-            plugin.saveResource("lang/ko.yml", false);
+            // 기본 리소스 저장 (영어 기본 제공)
             plugin.saveResource("lang/en.yml", false);
+            plugin.saveResource("lang/ko.yml", false);
         }
 
         File[] files = langFolder.listFiles();
@@ -53,18 +54,19 @@ public class LangManager {
     }
 
     public String getMessage(Player player, String key) {
-        String langCode = plugin.getConfigManager().getDefaultLanguage();
-        if (player != null && playerLangCache.containsKey(player.getUniqueId())) {
-            langCode = playerLangCache.get(player.getUniqueId());
-        }
+        // 1. 플레이어 설정 언어 확인 -> 2. 시스템 기본 언어 확인 -> 3. 영어(en) 확인
+        String defaultLang = plugin.getConfigManager().getDefaultLanguage();
+        String langCode = (player != null) ? playerLangCache.getOrDefault(player.getUniqueId(), defaultLang) : defaultLang;
 
+        String msg = getRawMessage(langCode, key);
+        if (msg == null) msg = getRawMessage(defaultLang, key);
+        if (msg == null) msg = getRawMessage("en", key);
+
+        return (msg != null) ? msg : "Missing message: " + key;
+    }
+
+    private String getRawMessage(String langCode, String key) {
         Map<String, String> langMap = messages.get(langCode);
-        if (langMap == null || !langMap.containsKey(key)) {
-            langMap = messages.get(plugin.getConfigManager().getDefaultLanguage());
-            if (langMap == null || !langMap.containsKey(key)) {
-                return "메시지 오류 키 " + key;
-            }
-        }
-        return langMap.get(key);
+        return (langMap != null) ? langMap.get(key) : null;
     }
 }

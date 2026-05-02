@@ -14,37 +14,57 @@ import java.util.List;
 public class MenuManager {
 
     private final PvPArenaManager plugin;
-    private final String mainMenuTitle;
-    private final String langMenuTitle;
 
     public MenuManager(PvPArenaManager plugin) {
         this.plugin = plugin;
-        this.mainMenuTitle = plugin.getLangManager().getMessage(null, "menu_title");
-        this.langMenuTitle = "Select Language / 언어 선택";
     }
 
     public void openMatchMenu(Player player) {
-        Inventory inv = Bukkit.createInventory(null, 27, mainMenuTitle);
+        // 플레이어 언어별 메뉴 타이틀 로드
+        String title = plugin.getLangManager().getMessage(player, "menu_title");
+        Inventory inv = Bukkit.createInventory(null, 27, title);
 
-        // 배경 유리판 생략 (성능 최적화 버전)
-        inv.setItem(10, createItem(Material.IRON_SWORD, "&f[ 1vs1 ]", "&71vs1 Match"));
-        inv.setItem(11, createItem(Material.GOLDEN_SWORD, "&f[ 2vs2 ]", "&72vs2 Match"));
-        inv.setItem(12, createItem(Material.DIAMOND_SWORD, "&f[ 3vs3 ]", "&73vs3 Match"));
-        inv.setItem(13, createItem(Material.NETHERITE_SWORD, "&f[ 4vs4 ]", "&74vs4 Match"));
-        inv.setItem(15, createItem(Material.TNT, "&c[ Deathmatch ]", "&7Deathmatch"));
+        // 매칭 모드 아이템 설정
+        inv.setItem(10, createItem(Material.IRON_SWORD,
+                plugin.getLangManager().getMessage(player, "item_1v1_name"),
+                plugin.getLangManager().getMessage(player, "item_1v1_lore")));
 
-        // 언어 설정 버튼 (책 아이템)
-        inv.setItem(21, createItem(Material.BOOK, "&e[ Language / 언어 ]", "&7Change your language."));
-        inv.setItem(23, createItem(Material.BARRIER, "&c[ Cancel / 취소 ]", "&7Leave Queue"));
+        inv.setItem(11, createItem(Material.GOLDEN_SWORD,
+                plugin.getLangManager().getMessage(player, "item_2v2_name"),
+                plugin.getLangManager().getMessage(player, "item_2v2_lore")));
+
+        inv.setItem(12, createItem(Material.DIAMOND_SWORD,
+                plugin.getLangManager().getMessage(player, "item_3v3_name"),
+                plugin.getLangManager().getMessage(player, "item_3v3_lore")));
+
+        inv.setItem(13, createItem(Material.NETHERITE_SWORD,
+                plugin.getLangManager().getMessage(player, "item_4v4_name"),
+                plugin.getLangManager().getMessage(player, "item_4v4_lore")));
+
+        inv.setItem(15, createItem(Material.TNT,
+                plugin.getLangManager().getMessage(player, "item_dm_name"),
+                plugin.getLangManager().getMessage(player, "item_dm_lore")));
+
+        // 유틸리티 버튼 (언어 설정 및 취소)
+        inv.setItem(21, createItem(Material.BOOK,
+                plugin.getLangManager().getMessage(player, "item_lang_name"),
+                plugin.getLangManager().getMessage(player, "item_lang_lore")));
+
+        inv.setItem(23, createItem(Material.BARRIER,
+                plugin.getLangManager().getMessage(player, "item_cancel_name"),
+                plugin.getLangManager().getMessage(player, "item_cancel_lore")));
 
         player.openInventory(inv);
     }
 
     public void openLanguageMenu(Player player) {
-        Inventory inv = Bukkit.createInventory(null, 9, langMenuTitle);
+        // 플레이어 언어별 언어 선택 메뉴 타이틀 로드
+        String title = plugin.getLangManager().getMessage(player, "menu_lang_title");
+        Inventory inv = Bukkit.createInventory(null, 9, title);
 
+        // 언어 선택 아이템 (한국어/영어 고정 명칭 사용)
         inv.setItem(3, createItem(Material.PAPER, "&f한국어 (Korean)", "&7클릭하여 한국어로 설정합니다."));
-        inv.setItem(5, createItem(Material.PAPER, "&fEnglish (영어)", "&7Click to set language to English."));
+        inv.setItem(5, createItem(Material.PAPER, "&fEnglish (English)", "&7Click to set language to English."));
 
         player.openInventory(inv);
     }
@@ -53,20 +73,17 @@ public class MenuManager {
         ItemStack item = new ItemStack(mat);
         ItemMeta meta = item.getItemMeta();
         if (meta != null) {
-            meta.setDisplayName(org.bukkit.ChatColor.translateAlternateColorCodes('&', name));
+            // LangManager에서 이미 ChatColor 처리가 완료된 문자열을 전달받음
+            meta.setDisplayName(name);
             if (lores.length > 0) {
                 List<String> loreList = new ArrayList<>();
                 for (String line : lores) {
-                    loreList.add(org.bukkit.ChatColor.translateAlternateColorCodes('&', line));
+                    loreList.add(line);
                 }
                 meta.setLore(loreList);
             }
             item.setItemMeta(meta);
         }
         return item;
-    }
-
-    public String getLangMenuTitle() {
-        return langMenuTitle;
     }
 }

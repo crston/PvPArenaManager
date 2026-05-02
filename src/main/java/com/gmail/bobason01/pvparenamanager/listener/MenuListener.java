@@ -15,41 +15,45 @@ import org.bukkit.inventory.ItemStack;
 public class MenuListener implements Listener {
 
     private final PvPArenaManager plugin;
-    private final String mainMenuTitle;
-    private final String langMenuTitle;
 
     public MenuListener(PvPArenaManager plugin) {
         this.plugin = plugin;
-        this.mainMenuTitle = plugin.getLangManager().getMessage(null, "menu_title");
-        this.langMenuTitle = plugin.getMenuManager().getLangMenuTitle();
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onInventoryClick(InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player)) return;
+        Player player = (Player) event.getWhoClicked();
+
         String title = event.getView().getTitle();
 
-        if (!title.equals(mainMenuTitle) && !title.equals(langMenuTitle)) return;
+        // 해당 플레이어의 언어 설정에 따른 메뉴 타이틀 가져오기
+        String mainMenuTitle = plugin.getLangManager().getMessage(player, "menu_title");
+        String langMenuTitle = plugin.getLangManager().getMessage(player, "menu_lang_title");
 
-        // 아이템이 인벤토리 밖으로 빠지거나 마우스에 붙는 것을 방지하는 강력한 조치
+        boolean isMainMenu = title.equals(mainMenuTitle);
+        boolean isLangMenu = title.equals(langMenuTitle);
+
+        // PAM 메뉴가 아니면 무시
+        if (!isMainMenu && !isLangMenu) return;
+
+        // 메뉴 조작 차단 (아이템 가져오기, 옮기기 등)
         event.setCancelled(true);
 
-        // 아이템을 수집하거나 옮기는 액션 자체를 차단
+        // 강력한 조치: 클릭 액션이 아이템 수집 또는 이동일 경우 추가 차단
         if (event.getAction() == InventoryAction.COLLECT_TO_CURSOR ||
                 event.getAction() == InventoryAction.MOVE_TO_OTHER_INVENTORY) {
             event.setCancelled(true);
         }
 
-        if (!(event.getWhoClicked() instanceof Player)) return;
-        Player player = (Player) event.getWhoClicked();
-
         ItemStack clickedItem = event.getCurrentItem();
         if (clickedItem == null || clickedItem.getType() == Material.AIR) return;
 
-        // 메뉴 영역(상단) 클릭 시에만 로직 작동
+        // 상단 인벤토리 영역 클릭 시에만 로직 수행
         if (event.getRawSlot() < event.getView().getTopInventory().getSize()) {
-            if (title.equals(mainMenuTitle)) {
+            if (isMainMenu) {
                 handleMainMenu(clickedItem.getType(), player);
-            } else if (title.equals(langMenuTitle)) {
+            } else if (isLangMenu) {
                 handleLangMenu(event.getRawSlot(), player);
             }
         }
@@ -57,7 +61,13 @@ public class MenuListener implements Listener {
 
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onInventoryDrag(InventoryDragEvent event) {
+        if (!(event.getWhoClicked() instanceof Player)) return;
+        Player player = (Player) event.getWhoClicked();
+
         String title = event.getView().getTitle();
+        String mainMenuTitle = plugin.getLangManager().getMessage(player, "menu_title");
+        String langMenuTitle = plugin.getLangManager().getMessage(player, "menu_lang_title");
+
         if (title.equals(mainMenuTitle) || title.equals(langMenuTitle)) {
             event.setCancelled(true);
         }
@@ -65,24 +75,35 @@ public class MenuListener implements Listener {
 
     private void handleMainMenu(Material mat, Player player) {
         switch (mat) {
-            case IRON_SWORD: plugin.getMatchManager().addToQueue(player, ArenaType.ONE_VS_ONE); break;
-            case GOLDEN_SWORD: plugin.getMatchManager().addToQueue(player, ArenaType.TWO_VS_TWO); break;
-            case DIAMOND_SWORD: plugin.getMatchManager().addToQueue(player, ArenaType.THREE_VS_THREE); break;
-            case NETHERITE_SWORD: plugin.getMatchManager().addToQueue(player, ArenaType.FOUR_VS_FOUR); break;
-            case TNT: plugin.getMatchManager().addToQueue(player, ArenaType.DEATHMATCH); break;
+            case IRON_SWORD:
+                plugin.getMatchManager().addToQueue(player, ArenaType.ONE_VS_ONE);
+                break;
+            case GOLDEN_SWORD:
+                plugin.getMatchManager().addToQueue(player, ArenaType.TWO_VS_TWO);
+                break;
+            case DIAMOND_SWORD:
+                plugin.getMatchManager().addToQueue(player, ArenaType.THREE_VS_THREE);
+                break;
+            case NETHERITE_SWORD:
+                plugin.getMatchManager().addToQueue(player, ArenaType.FOUR_VS_FOUR);
+                break;
+            case TNT:
+                plugin.getMatchManager().addToQueue(player, ArenaType.DEATHMATCH);
+                break;
             case BOOK:
                 plugin.getMenuManager().openLanguageMenu(player);
-                return;
+                return; // 언어 메뉴를 여는 경우 인벤토리를 닫지 않음
             case BARRIER:
-                // [수정] 직접 삭제하지 말고 MatchManager의 메서드를 호출해야 보스바가 지워집니다.
                 plugin.getMatchManager().removeFromQueue(player);
                 break;
-            default: return;
+            default:
+                return;
         }
         player.closeInventory();
     }
 
     private void handleLangMenu(int slot, Player player) {
+        // 슬롯 번호 기반 언어 설정 처리
         if (slot == 3) {
             plugin.getLangManager().setPlayerLanguage(player, "ko");
             player.sendMessage(plugin.getLangManager().getMessage(player, "lang_change_success"));

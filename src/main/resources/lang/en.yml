@@ -1,27 +1,57 @@
+# PvPArenaManager English Language File
 # System Messages
-plugin_enabled: "&aPvPArenaManager has been enabled."
-plugin_disabled: "&cPvPArenaManager has been disabled."
-reload_success: "&aConfig and Language files have been reloaded."
 no_permission: "&cYou do not have permission to use this command."
+reload_success: "&aConfiguration and language files reloaded successfully."
 
-# Matching
-queue_join: "&aJoined the matching queue. Searching for an opponent..."
-queue_leave: "&cYou have left the matching queue."
-match_countdown: "&eMatch starts in %time% seconds."
-match_start: "&c&lFight! Defeat your opponent."
-match_time_left: "&6%time% seconds left until draw."
-match_draw: "&eMatch ended in a draw due to time limit."
+# Admin Commands
+admin_arena_created: "&a[PAM] Arena &f%name% &ahas been created (Region: %region%)."
+admin_arena_deleted: "&c[PAM] Arena &f%name% &ahas been deleted."
+admin_usage_create: "&cUsage: /pam create [name] [WorldGuard-Region]"
+admin_spawn_set_red: "&a[PAM] &f%name% &cRed Spawn &aset to your current location."
+admin_spawn_set_blue: "&a[PAM] &f%name% &bBlue Spawn &aset to your current location."
+admin_arena_empty: "&7No arenas have been registered yet."
+admin_status_ready: "&a[Ready]"
+admin_status_setup: "&c[Needs Setup]"
 
-# Visual Effects (Title & BossBar)
-match_title_ready: "&e&lGet Ready!"
-match_title_start: "&c&lFIGHT!"
-match_glow_start: "&6&l[!] &eHalf of the time has passed! All players are now glowing."
+# Matching & Queue
+queue_join: "&eYou have joined the matching queue."
+queue_waiting_bar: "&eMatching in progress... &a%time%"
+match_quit_penalty: "&cYou left the match and received a loss penalty."
 
-# Match Results
-match_win: "&b&l[VICTORY] &fYou won the match and earned points!"
-match_loss: "&c&l[DEFEAT] &fYou lost the match. Better luck next time."
+# Match Flow
+match_title_ready: "&eGET READY!"
+match_title_start: "&6&lFIGHT!"
+match_countdown: "&fMatch starts in &e%time%&f seconds."
+match_time_left: "&fTime Left: &e%time%s"
+match_glow_start: "&cAll players are now glowing!"
+match_draw: "&eThe match ended in a draw."
+match_win: "&aVictory! &f(+%points% points)"
+match_loss: "&cDefeat. &f(-%points% points)"
 
-# GUI & Others
-menu_title: "PVP Match Menu"
-lang_change_success: "&aLanguage has been set to English."
-tier_up: "&b&l[TIER UP] &fCurrent Tier: %tier%"
+# Menus
+menu_title: "PvP Match Menu"
+menu_lang_title: "Select Language"
+lang_change_success: "&aLanguage has been changed to English."
+
+# GUI Items
+item_1v1_name: "&f[ 1vs1 ]"
+item_1v1_lore: "&7Start a 1vs1 duel."
+item_2v2_name: "&f[ 2vs2 ]"
+item_2v2_lore: "&7Start a 2vs2 team match."
+item_3v3_name: "&f[ 3vs3 ]"
+item_3v3_lore: "&7Start a 3vs3 team match."
+item_4v4_name: "&f[ 4vs4 ]"
+item_4v4_lore: "&7Start a 4vs4 team match."
+item_dm_name: "&c[ Deathmatch ]"
+item_dm_lore: "&7Start a free-for-all deathmatch."
+item_lang_name: "&e[ Language ]"
+item_lang_lore: "&7Change your display language."
+item_cancel_name: "&c[ Cancel ]"
+item_cancel_lore: "&7Leave the matching queue."
+
+# Tier
+tier_bronze: "&8[Bronze]"
+tier_silver: "&7[Silver]"
+tier_gold: "&e[Gold]"
+tier_platinum: "&b[Platinum]"
+tier_diamond: "&3[Diamond]"

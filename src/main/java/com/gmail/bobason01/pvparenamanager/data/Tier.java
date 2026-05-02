@@ -1,29 +1,39 @@
 package com.gmail.bobason01.pvparenamanager.data;
 
+import com.gmail.bobason01.pvparenamanager.PvPArenaManager;
+import org.bukkit.entity.Player;
+
 public enum Tier {
-    BRONZE(0, "브론즈"),
-    SILVER(1000, "실버"),
-    GOLD(2000, "골드"),
-    PLATINUM(3000, "플래티넘"),
-    DIAMOND(4000, "다이아몬드");
+    BRONZE(0, "tier_bronze"),
+    SILVER(1000, "tier_silver"),
+    GOLD(2000, "tier_gold"),
+    PLATINUM(3000, "tier_platinum"),
+    DIAMOND(4000, "tier_diamond");
 
     private final int minPoints;
-    private final String displayName;
+    private final String langKey;
 
-    Tier(int minPoints, String displayName) {
+    Tier(int minPoints, String langKey) {
         this.minPoints = minPoints;
-        this.displayName = displayName;
+        this.langKey = langKey;
     }
 
     public static Tier getTier(int points) {
         Tier highest = BRONZE;
         for (Tier tier : values()) {
-            if (points >= tier.minPoints) highest = tier;
+            if (points >= tier.minPoints) {
+                highest = tier;
+            }
         }
         return highest;
     }
 
-    public String getDisplayName() {
-        return displayName;
+    // 플레이어의 언어 설정에 맞는 티어 이름 반환
+    public String getDisplayName(Player player) {
+        return PvPArenaManager.getInstance().getLangManager().getMessage(player, this.langKey);
+    }
+
+    public int getMinPoints() {
+        return minPoints;
     }
 }

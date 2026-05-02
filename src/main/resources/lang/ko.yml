@@ -1,27 +1,57 @@
+# PvPArenaManager 한국어 언어 파일
 # 시스템 메시지
-plugin_enabled: "&aPvPArenaManager 플러그인이 활성화되었습니다."
-plugin_disabled: "&cPvPArenaManager 플러그인이 비활성화되었습니다."
-reload_success: "&a설정 및 언어 파일이 성공적으로 리로드되었습니다."
 no_permission: "&c이 명령어를 사용할 권한이 없습니다."
+reload_success: "&a설정 및 언어 파일을 성공적으로 리로드했습니다."
 
-# 매칭 관련
-queue_join: "&a매칭 대기열에 참가하였습니다. 적절한 상대를 찾는 중..."
-queue_leave: "&c매칭 대기열에서 나갔습니다."
-match_countdown: "&e전투 시작까지 %time%초 남았습니다."
-match_start: "&c&l전투 시작! 상대방을 제압하세요."
-match_time_left: "&6제한 시간 종료까지 %time%초 남았습니다."
-match_draw: "&e시간 초과로 인해 무승부 처리되었습니다."
+# 어드민 명령어
+admin_arena_created: "&a[PAM] 아레나 &f%name% &a생성 완료 (지역: %region%)"
+admin_arena_deleted: "&c[PAM] 아레나 &f%name% &c삭제 완료."
+admin_usage_create: "&c사용법: /pam create [이름] [월드가드지역]"
+admin_spawn_set_red: "&a[PAM] &f%name% &c레드 스폰&a 설정 완료."
+admin_spawn_set_blue: "&a[PAM] &f%name% &b블루 스폰&a 설정 완료."
+admin_arena_empty: "&7등록된 아레나가 없습니다."
+admin_status_ready: "&a[준비 완료]"
+admin_status_setup: "&c[설정 필요]"
 
-# 시각 효과 (타이틀 및 보스바)
-match_title_ready: "&e&l전투 준비!"
-match_title_start: "&c&l전투 시작!"
-match_glow_start: "&6&l[!] &e시간이 절반 경과했습니다! 모든 플레이어의 위치가 노출됩니다."
+# 매칭 및 대기열
+queue_join: "&e매칭 대기열에 입장했습니다."
+queue_waiting_bar: "&e매칭 대기 중... &a%time%"
+match_quit_penalty: "&c전투 도중 이탈하여 패배 처리되었습니다."
 
-# 전투 결과
-match_win: "&b&l[승리] &f전투에서 승리하여 점수를 획득했습니다!"
-match_loss: "&c&l[패배] &f전투에서 패배했습니다. 다음 기회를 노리세요."
+# 매치 진행
+match_title_ready: "&e전투 준비!"
+match_title_start: "&6&l전투 시작!"
+match_countdown: "&f전투 시작까지 &e%time%&f초 남았습니다."
+match_time_left: "&f남은 시간: &e%time%초"
+match_glow_start: "&c발광 효과가 적용되었습니다!"
+match_draw: "&e무승부로 종료되었습니다."
+match_win: "&a승리! &f(+%points% 점)"
+match_loss: "&c패배. &f(-%points% 점)"
 
-# GUI 및 기타
-menu_title: "PVP 매칭 시스템"
-lang_change_success: "&a언어가 한국어로 설정되었습니다."
-tier_up: "&b&l[티어 상승] &f현재 티어: %tier%"
+# 메뉴
+menu_title: "PvP 매칭 메뉴"
+menu_lang_title: "언어 선택 / Select Language"
+lang_change_success: "&a언어가 한국어로 변경되었습니다."
+
+# GUI 아이템
+item_1v1_name: "&f[ 1vs1 ]"
+item_1v1_lore: "&71vs1 대전을 시작합니다."
+item_2v2_name: "&f[ 2vs2 ]"
+item_2v2_lore: "&72vs2 팀 대전을 시작합니다."
+item_3v3_name: "&f[ 3vs3 ]"
+item_3v3_lore: "&73vs3 팀 대전을 시작합니다."
+item_4v4_name: "&f[ 4vs4 ]"
+item_4v4_lore: "&74vs4 팀 대전을 시작합니다."
+item_dm_name: "&c[ 데스매치 ]"
+item_dm_lore: "&7개인전 데스매치를 시작합니다."
+item_lang_name: "&e[ 언어 설정 ]"
+item_lang_lore: "&7출력되는 언어를 변경합니다."
+item_cancel_name: "&c[ 매칭 취소 ]"
+item_cancel_lore: "&7대기열에서 나갑니다."
+
+# 티어
+tier_bronze: "&8[브론즈]"
+tier_silver: "&7[실버]"
+tier_gold: "&e[골드]"
+tier_platinum: "&b[플래티넘]"
+tier_diamond: "&3[다이아몬드]"

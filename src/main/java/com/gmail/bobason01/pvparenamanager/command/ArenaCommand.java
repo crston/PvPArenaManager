@@ -49,15 +49,16 @@ public class ArenaCommand implements CommandExecutor, TabCompleter {
             case "create":
                 if (args.length >= 3) {
                     plugin.getArenaManager().createArena(args[1], args[2]);
-                    player.sendMessage("§a[PAM] 아레나 §f" + args[1] + " §a생성 완료 (지역: " + args[2] + ")");
+                    player.sendMessage(plugin.getLangManager().getMessage(player, "admin_arena_created")
+                            .replace("%name%", args[1]).replace("%region%", args[2]));
                 } else {
-                    player.sendMessage("§c사용법: /pam create [이름] [월드가드지역]");
+                    player.sendMessage(plugin.getLangManager().getMessage(player, "admin_usage_create"));
                 }
                 break;
             case "delete":
                 if (args.length >= 2) {
                     plugin.getArenaManager().deleteArena(args[1]);
-                    player.sendMessage("§c[PAM] 아레나 §f" + args[1] + " §c삭제 완료.");
+                    player.sendMessage(plugin.getLangManager().getMessage(player, "admin_arena_deleted").replace("%name%", args[1]));
                 }
                 break;
             case "setred":
@@ -66,7 +67,7 @@ public class ArenaCommand implements CommandExecutor, TabCompleter {
                     if (a != null) {
                         a.setRedSpawn(player.getLocation());
                         plugin.getArenaManager().saveArenas();
-                        player.sendMessage("§a[PAM] §f" + args[1] + " §c레드 스폰§a 설정 완료.");
+                        player.sendMessage(plugin.getLangManager().getMessage(player, "admin_spawn_set_red").replace("%name%", args[1]));
                     }
                 }
                 break;
@@ -76,7 +77,7 @@ public class ArenaCommand implements CommandExecutor, TabCompleter {
                     if (a != null) {
                         a.setBlueSpawn(player.getLocation());
                         plugin.getArenaManager().saveArenas();
-                        player.sendMessage("§a[PAM] §f" + args[1] + " §b블루 스폰§a 설정 완료.");
+                        player.sendMessage(plugin.getLangManager().getMessage(player, "admin_spawn_set_blue").replace("%name%", args[1]));
                     }
                 }
                 break;
@@ -94,7 +95,7 @@ public class ArenaCommand implements CommandExecutor, TabCompleter {
     private void sendArenaList(Player player) {
         player.sendMessage("§8§m      §e [ PvPArena List ] §8§m      ");
         if (plugin.getArenaManager().getArenas().isEmpty()) {
-            player.sendMessage("§7등록된 아레나가 없습니다.");
+            player.sendMessage(plugin.getLangManager().getMessage(player, "admin_arena_empty"));
             return;
         }
 
@@ -104,37 +105,29 @@ public class ArenaCommand implements CommandExecutor, TabCompleter {
             boolean redSet = arena.getRedSpawn() != null;
             boolean blueSet = arena.getBlueSpawn() != null;
 
-            String status = (redSet && blueSet) ? "§a[준비 완료]" : "§c[설정 필요]";
-            player.sendMessage("§f- " + name + " §7(" + region + ") " + status);
+            String readyStr = (redSet && blueSet) ? plugin.getLangManager().getMessage(player, "admin_status_ready") : plugin.getLangManager().getMessage(player, "admin_status_setup");
+            player.sendMessage("§f- " + name + " §7(" + region + ") " + readyStr);
             player.sendMessage("  §7Spawn: §cRed " + (redSet ? "✔" : "✘") + " §8| §bBlue " + (blueSet ? "✔" : "✘"));
         }
         player.sendMessage("§8§m                            ");
-    }
-
-    @Override
-    public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
-        if (!sender.hasPermission("pvparena.admin")) return null;
-
-        if (args.length == 1) {
-            return adminArgs.stream()
-                    .filter(s -> s.startsWith(args[0].toLowerCase()))
-                    .collect(Collectors.toList());
-        }
-
-        if (args.length == 2) {
-            String sub = args[0].toLowerCase();
-            if (sub.equals("delete") || sub.equals("setred") || sub.equals("setblue")) {
-                return plugin.getArenaManager().getArenas().keySet().stream()
-                        .filter(s -> s.startsWith(args[1].toLowerCase()))
-                        .collect(Collectors.toList());
-            }
-        }
-        return new ArrayList<>();
     }
 
     private void reloadSystem(CommandSender sender) {
         plugin.getConfigManager().loadConfig();
         plugin.getLangManager().loadLang();
         plugin.getArenaManager().loadArenas();
+    }
+
+    @Override
+    public @Nullable List<String> onTabComplete(@NotNull CommandSender sender, @NotNull Command command, @NotNull String alias, @NotNull String[] args) {
+        if (!sender.hasPermission("pvparena.admin")) return null;
+        if (args.length == 1) return adminArgs.stream().filter(s -> s.startsWith(args[0].toLowerCase())).collect(Collectors.toList());
+        if (args.length == 2) {
+            String sub = args[0].toLowerCase();
+            if (sub.equals("delete") || sub.equals("setred") || sub.equals("setblue")) {
+                return plugin.getArenaManager().getArenas().keySet().stream().filter(s -> s.startsWith(args[1].toLowerCase())).collect(Collectors.toList());
+            }
+        }
+        return new ArrayList<>();
     }
 }

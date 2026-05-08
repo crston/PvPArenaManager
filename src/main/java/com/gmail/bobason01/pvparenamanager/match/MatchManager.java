@@ -1,6 +1,8 @@
 package com.gmail.bobason01.pvparenamanager.match;
 
 import com.gmail.bobason01.pvparenamanager.PvPArenaManager;
+import com.gmail.bobason01.pvparenamanager.api.event.MatchEndEvent;
+import com.gmail.bobason01.pvparenamanager.api.event.MatchStartEvent;
 import com.gmail.bobason01.pvparenamanager.arena.Arena;
 import com.gmail.bobason01.pvparenamanager.arena.ArenaState;
 import com.gmail.bobason01.pvparenamanager.arena.ArenaType;
@@ -17,6 +19,7 @@ import org.bukkit.scheduler.BukkitRunnable;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.stream.Collectors;
 
 public class MatchManager {
 
@@ -24,8 +27,6 @@ public class MatchManager {
     private final Map<ArenaType, List<MatchQueueEntry>> matchQueues = new EnumMap<>(ArenaType.class);
     private final Map<UUID, Arena> playerInMatch = new ConcurrentHashMap<>();
     private final Map<UUID, BossBar> playerInQueueBar = new ConcurrentHashMap<>();
-
-    // 플레이어의 원래 위치를 저장하기 위한 맵
     private final Map<UUID, Location> originalLocations = new ConcurrentHashMap<>();
 
     public MatchManager(PvPArenaManager plugin) {
@@ -70,7 +71,6 @@ public class MatchManager {
             long elapsedSeconds = (now - entry.getStartTime()) / 1000;
             String timeStr = String.format("%02d:%02d", elapsedSeconds / 60, elapsedSeconds % 60);
 
-            // 다국어 적용
             String title = plugin.getLangManager().getMessage(p, "queue_waiting_bar").replace("%time%", timeStr);
             bar.setTitle(title);
             bar.setProgress(1.0);
@@ -116,7 +116,6 @@ public class MatchManager {
             Player p = Bukkit.getPlayer(entry.getUuid());
             if (p != null && p.isOnline()) {
                 players.add(p);
-                // 매치 시작 직전 현재 위치 저장
                 originalLocations.put(p.getUniqueId(), p.getLocation());
                 removeQueueBar(p.getUniqueId());
             }
@@ -127,6 +126,7 @@ public class MatchManager {
                 matchQueues.get(type).remove(entry);
             }
             startMatch(arena, players, type);
+            Bukkit.getPluginManager().callEvent(new MatchStartEvent(arena, players, type));
         }
     }
 
@@ -284,6 +284,8 @@ public class MatchManager {
         arena.setState(ArenaState.ENDING);
         arena.stopTask();
         broadcastToArena(arena, plugin.getLangManager().getMessage(null, "match_draw"));
+
+        Bukkit.getPluginManager().callEvent(new MatchEndEvent(arena, new HashSet<>(), new HashSet<>(), true));
         finalizeMatch(arena);
     }
 
@@ -295,16 +297,27 @@ public class MatchManager {
         int pointWin = 20;
         int pointLoss = 10;
 
+        Set<Player> winnerPlayers = new HashSet<>();
+        Set<Player> loserPlayers = new HashSet<>();
+
         for (UUID uuid : winners) {
             plugin.getDatabaseManager().updateStats(uuid, 1, 0, pointWin);
             Player p = Bukkit.getPlayer(uuid);
-            if (p != null) p.sendMessage(plugin.getLangManager().getMessage(p, "match_win").replace("%points%", String.valueOf(pointWin)));
+            if (p != null) {
+                p.sendMessage(plugin.getLangManager().getMessage(p, "match_win").replace("%points%", String.valueOf(pointWin)));
+                winnerPlayers.add(p);
+            }
         }
         for (UUID uuid : losers) {
             plugin.getDatabaseManager().updateStats(uuid, 0, 1, -pointLoss);
             Player p = Bukkit.getPlayer(uuid);
-            if (p != null) p.sendMessage(plugin.getLangManager().getMessage(p, "match_loss").replace("%points%", String.valueOf(pointLoss)));
+            if (p != null) {
+                p.sendMessage(plugin.getLangManager().getMessage(p, "match_loss").replace("%points%", String.valueOf(pointLoss)));
+                loserPlayers.add(p);
+            }
         }
+
+        Bukkit.getPluginManager().callEvent(new MatchEndEvent(arena, winnerPlayers, loserPlayers, false));
         finalizeMatch(arena);
     }
 
@@ -323,7 +336,6 @@ public class MatchManager {
                 p.setGameMode(GameMode.SURVIVAL);
                 p.setGlowing(false);
 
-                // 원래 위치로 복구
                 Location loc = originalLocations.remove(uuid);
                 if (loc != null) {
                     p.teleport(loc);
